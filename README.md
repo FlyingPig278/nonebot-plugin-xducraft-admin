@@ -38,7 +38,7 @@
 ## 安装与加载
 
 > [!NOTE]  
-> 本软件包目前尚未发布至公共 PyPI 仓库。安装请使用预定推送的 GitHub Release Tag 源码链接。  
+> 本软件包尚未发布至公共 PyPI 仓库，请使用 Git 标签安装。
 > 本仓库已在版本控制中跟踪编译好的前端静态资产（`src/xducraft_admin/static/`），无论是通过 pip Git Tag 安装、宿主固定 Git SHA 安装还是 Wheel 包安装，**部署宿主机均无需安装 Node.js 或 npm 环境**。
 
 ### 1. 宿主环境安装
