@@ -1,121 +1,113 @@
-# XDUCraft Admin (`nonebot-plugin-xducraft-admin`) 0.1.0
+# nonebot-plugin-xducraft-admin
 
-基于 Vue 3 + Naive UI 的 XDUCraft NoneBot 机器人本地回环 WebUI 管理面板。
+XDUCraft 网页管理面板插件，用于在浏览器中开关插件、修改各群设置和查看机器人运行状态。
 
-提供可视化声明驱动表单渲染、按群配置管理、插件全局管控与系统状态监控。
-
-主部署宿主仓库参见：[FlyingPig278/XDUCraft-bot](https://github.com/FlyingPig278/XDUCraft-bot)。
-
----
-
-## 功能说明
-
-- **声明驱动表单渲染**：前端由 Core 后端输出的 JSON Schema 与元数据动态驱动，自动支持多级树、标签列表、QQ 列表及本地图片上传等复杂组件。
-- **群优先交互体系 (Group-first)**：
-  - **群聊 (`/groups`)**：枚举在线与历史群聊，卡片化展示本群业务插件与群独立配置；
-  - **插件 (`/plugins`)**：集中管控各受管插件的全局总开关与全局独占配置；
-  - **系统 (`/system`)**：展示已连接 Bot 账号在线状态、OneBot 协议端元数据与基础诊断信息。
-- **安全与鉴权防护**：服务严格限定绑定本地回环接口，同源 `Origin` 校验、`X-CSRF-Token` 写防护、Cookie 标记 `HttpOnly` + `SameSite=Strict`（12 小时有效期）。
-- **并发编辑保护**：基于 HMAC-SHA256 的版本摘要与 `If-Match` 机制，遇到并发编辑时返回 `409 Conflict` 并保留本地草稿。
-- **非受管基础设施定位**：声明为 `managed=False`，自身不受业务门禁拦截，且业务插件在未启用 WebUI 时完全正常运行。
-
----
-
-## 环境变量配置
-
-| 环境变量 | 默认值 | 配置来源 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `WEB_ADMIN_ENABLED` | `false` | `.env` 或 OS 环境变量 | 是否启动 WebUI 服务（设为 `true` 开启，OS 变量优先） |
-| `WEB_ADMIN_PORT` | `8765` | `.env` 或 OS 环境变量 | WebUI 服务本地监听端口（OS 变量优先） |
-| `WEB_ADMIN_PASSWORD` | 无 | **仅操作系统环境变量** | 管理口令（**强约束至少 12 个字符**，仅当面板启用时必填） |
-
-> [!IMPORTANT]
-> - **管理口令安全约束**：`WEB_ADMIN_PASSWORD` 拥有机器人最高控制权，代码中特意未设 NoneBot `.env` 回退，**必须直接设置在进程操作系统的环境变量中**，防止被 NoneBot 的全局配置输出泄露。
-> - **面板启动隔离**：当开启了面板但未提供口令或口令不足 12 位时，仅 WebUI 面板自身拒绝启动并输出错误日志，**NoneBot 机器人主进程与其他业务插件将继续正常运行**，绝不会导致整个机器人进程崩溃中断。
-
----
+运行整套机器人请看 [XDUCraft-bot](https://github.com/FlyingPig278/XDUCraft-bot)。
 
 ## 安装与加载
 
-> [!NOTE]  
-> 本软件包尚未发布至公共 PyPI 仓库，请使用 Git 标签安装。
-> 本仓库已在版本控制中跟踪编译好的前端静态资产（`src/xducraft_admin/static/`），无论是通过 pip Git Tag 安装、宿主固定 Git SHA 安装还是 Wheel 包安装，**部署宿主机均无需安装 Node.js 或 npm 环境**。
+本软件包尚未发布至公共 PyPI 仓库，请通过 Git 标签安装。
 
-### 1. 宿主环境安装
+仓库已内置编译生成的前端静态资源文件（位于 `src/xducraft_admin/static/`），安装与运行面板均无需安装 Node.js 或 npm。
 
-在已初始化的 NoneBot 2 部署环境中，先安装 Core 核心包，再安装本插件：
+### 1. 安装
+
+在现有的 NoneBot 2.4.x 项目环境中，先安装 Core 核心包，再安装本插件：
 
 ```bash
-# 1. 安装 Core 核心包（需包含 [onebot] 适配器扩展）
 pip install "nonebot-plugin-xducraft-core[onebot] @ git+https://github.com/FlyingPig278/nonebot-plugin-xducraft-core.git@v0.3.0"
-
-# 2. 安装 Admin 插件
 pip install "nonebot-plugin-xducraft-admin @ git+https://github.com/FlyingPig278/nonebot-plugin-xducraft-admin.git@v0.1.0"
 ```
 
-### 2. 宿主加载配置
+### 2. 加载配置
 
-在 NoneBot 宿主项目的 `pyproject.toml` 中显式同时加载 Core 与本插件：
+在 NoneBot 项目的 `pyproject.toml` 中将插件加载名追加到已有的 `plugins` 列表中（请保留已有插件与适配器配置，添加而非覆盖）：
 
 ```toml
 [tool.nonebot]
 plugins = [
+    # 保留已有插件...
     "xducraft_config",
     "xducraft_admin",
 ]
 ```
 
----
+## 配置与启动
 
-## 本地开发与测试（贡献者）
+在项目目录的 `.env` 中启用管理面板：
 
-仓库中已跟踪预编译的前端产物。**仅开发后端或运行测试时无需 Node.js**，直接在仓库根目录执行：
-
-```bash
-# 安装 Core 依赖与本地开发依赖
-pip install "nonebot-plugin-xducraft-core[onebot] @ git+https://github.com/FlyingPig278/nonebot-plugin-xducraft-core.git@v0.3.0"
-pip install -e ".[dev]"
-
-# 运行自动化测试
-pytest
-
-# 本地构建 wheel 发行包
-python -m build
+```ini
+WEB_ADMIN_ENABLED=true
 ```
 
-### 修改前端与完整 CI 构建
+面板登录口令 `WEB_ADMIN_PASSWORD` 长度须至少 12 个字符。为了防止敏感口令在 NoneBot 全局配置中泄露，该口令必须直接设置在操作系统环境变量中，不支持从 `.env` 读取。如果未设置口令或口令不足 12 位，只有管理面板不会启动，机器人主进程与其他业务插件仍会正常运行。
 
-前端源码位于 `webui/` 目录下。当且仅当修改前端界面或执行完整 CI 构建时需要 Node.js 环境：
+在终端中设置口令并启动机器人：
+
+Linux 与 macOS 环境：
+```bash
+export WEB_ADMIN_PASSWORD="your-strong-password-12+"
+nb run
+```
+
+Windows PowerShell 环境：
+```powershell
+$env:WEB_ADMIN_PASSWORD="your-strong-password-12+"
+nb run
+```
+
+面板默认监听本地端口 `8765`；如需修改，可在 `.env` 或操作系统环境变量中使用 `WEB_ADMIN_PORT` 指定其他端口。
+
+## 访问与操作流程
+
+服务启动后仅监听本地回环地址 `127.0.0.1:8765`（或自定义端口）。
+
+### 1. 打开面板
+
+- 本机部署：直接在浏览器访问 `http://127.0.0.1:8765/`。
+- 远程服务器部署：通过 SSH 本地端口转发建立连接：
+  ```bash
+  ssh -N -L 8765:127.0.0.1:8765 user@your-server-ip
+  ```
+  随后在本地浏览器访问 `http://127.0.0.1:8765/`。
+
+### 2. 功能页面与操作
+
+登录页面输入 `WEB_ADMIN_PASSWORD` 中配置的口令即可进入管理界面：
+
+- **插件**页面：集中管理各个插件的全局总开关与全局参数。所有业务插件默认处于关闭状态，群聊功能生效前必须先在此开启对应的全局总开关。
+- **群聊**页面：
+  - 展示机器人加入的群聊列表。若尚未连接 QQ 或尚未获取群信息，界面会提示“尚未获取群聊，请连接 QQ 后刷新”。
+  - 支持通过“全部插件”与“本群已启用”筛选插件。
+  - 选择具体群聊后，可开启该群的插件开关，并编辑保存群独立配置。
+- **系统**页面：展示已连接机器人的在线状态与运行诊断信息。
+
+## 本地开发与前端构建
+
+### 后端开发与测试
+
+仓库已包含预编译的静态资源。仅开发后端或执行测试时无需安装 Node.js：
 
 ```bash
-# 1. 编译前端产物（产物将输出至 src/xducraft_admin/static）
+pip install -e ".[dev]"
+pytest
+```
+
+### 前端源码修改
+
+前端源码位于 `webui/` 目录。修改前端界面时需要 Node.js 环境：
+
+```bash
 cd webui
 npm ci
 npm run build
 cd ..
-
-# 2. 修改前端后，须连同重新生成的 src/xducraft_admin/static/ 一并提交版本控制
 ```
 
-打包构建机制（`build_support.BuildPy`）要求构建发行包时必须存在 `src/xducraft_admin/static/index.html` 静态产物。
+构建生成的产物位于 `src/xducraft_admin/static/`。修改前端后需将重新生成的静态资源与代码一同提交版本控制。
 
----
+## 许可证与资源说明
 
-## 启动与安全访问
+本项目 Python 源码采用 [MIT License](LICENSE) 授权开源。
 
-服务启动后默认严格监听本地回环地址 `127.0.0.1:8765`，**严禁直接暴露在公网**。
-
-- **本机访问**：直接在浏览器打开 `http://127.0.0.1:8765/`。
-- **远程服务器访问（推荐）**：在本地客户端建立安全 SSH 隧道映射：
-  ```bash
-  ssh -N -L 8765:127.0.0.1:8765 user@your-server-ip
-  ```
-  随后在本地浏览器访问 `http://127.0.0.1:8765/` 即可安全登录。
-
----
-
-## 许可证说明
-
-本项目自身源码采用 [MIT License](LICENSE) 授权开源。
-
-前端界面及其引用的第三方 JavaScript/CSS 依赖库（Vue、Naive UI 等）遵循各自独立的开源许可协议。
+前端界面构建产物包含第三方 JavaScript 库、CSS 与图标资源，各第三方组件遵循其各自的开源许可协议，具体说明参见 [NOTICE](NOTICE) 文件与 [LICENSES/frontend-dependencies.txt](LICENSES/frontend-dependencies.txt)。
